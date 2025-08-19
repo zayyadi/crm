@@ -6,6 +6,8 @@ from app.core.config import settings
 DATABASE_URL = settings.DATABASE_URL
 Base = declarative_base()
 
+# print(DATABASE_URL)
+
 
 class AsyncDatabaseSession:
     def __init__(self):

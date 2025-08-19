@@ -37,12 +37,22 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 @router.post(
     "/register",
     response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_user(user: UserCreate):
-    hashed_password = verify_password(user.password)
-    user.password = hashed_password
-    user = await User.create(**user.dict())
-    return user
+    try:
+        # Check if user already exists
+        existing_user = await User.get_email(user.email)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="User with this email already exists")
+        
+        hashed_password = hash(user.password)
+        user_dict = user.dict()
+        user_dict["password"] = hashed_password
+        db_user = await User.create(**user_dict)
+        return db_user
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 async def get_user_by_email(email: str):
@@ -135,13 +145,13 @@ async def token(user: UserLogin):
         "token_type": "Bearer",
         "message": "User Logged in Successfully.",
         "data": user_data,
-        "orgid": users.orgid,
+        # "orgid": users.orgid,
         "status": status.HTTP_200_OK,
     }
 
 
-security = OAuth2PasswordBearer(tokenUrl="/auth/login")
-security2 = OAuth2PasswordBearerCookie(tokenUrl="/auth/token")
+security = OAuth2PasswordBearer(tokenUrl="api/v1/login")
+security2 = OAuth2PasswordBearerCookie(token_url="/auth/token")
 
 
 async def get_current_user(token: str = Depends(security)):
@@ -178,24 +188,38 @@ def require_role(*roles):
     return role_checker
 
 
-router.patch(
+@router.patch(
     "/{id}",
     status_code=status.HTTP_202_ACCEPTED,
 )
-
-
 async def update_user_password(
     id: str,
     user_schema: UserUpdate,
-    current_user: int = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    hashed_password = hash(user_schema.password)
-    user_schema.password = hashed_password
-    user = await User.update(id=id, **user_schema.dict())
-    return {
-        "status": status.HTTP_202_ACCEPTED,
-        "message": "user updated successfully!",
-    }
+    try:
+        # Check if the user exists
+        existing_user = await User.get_id(id)
+        if existing_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if the current user is authorized to update this user
+        if current_user.id != id and current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Not authorized to update this user")
+        
+        hashed_password = hash(user_schema.password)
+        user_dict = user_schema.dict()
+        user_dict["password"] = hashed_password
+        await User.update(id=id, **user_dict)
+        
+        return {
+            "status": status.HTTP_202_ACCEPTED,
+            "message": "User updated successfully!",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete(
@@ -274,3 +298,8 @@ async def logout(response: resp):
     )
 
     return responses
+
+
+@router.get("/me", response_model=UserRead)
+async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    return current_user

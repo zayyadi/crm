@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: crm-db
+    environment:
+      POSTGRES_DB: crm
+      POSTGRES_USER: zayyadev
+      POSTGRES_PASSWORD: beskoo1006
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - crm-network
+
+  redis:
+    image: redis:7
+    container_name: crm-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispw
+    networks:
+      - crm-network
+
+  app:
+    build: .
+    container_name: crm-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://zayyadev:beskoo1006@db:5432/crm
+      - SECRET_KEY=5445kjoij8y76g76r5@erytd76g8u09j90i0jku876fcrc54wsewsertyu7ioij9
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRES=60
+      - HOST=sandbox.smtp.mailtrap.io
+      - PORT=587
+      - USERNAME=1902ec824c2953
+      - PASSWORD=7365f34d9afdd9
+      - TOKEN_NAME=Authorization
+      - REDIS_PW=redispw
+    depends_on:
+      - db
+      - redis
+    networks:
+      - crm-network
+
+volumes:
+  postgres_data:
+
+networks:
+  crm-network:
+    driver: bridge

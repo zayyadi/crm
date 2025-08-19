@@ -1,8 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import router
+from routers.routers import router
+from app.core.database import db
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="CRM MVP")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize database
+    db.init()
+    await db.create_all()
+    yield
+    # Cleanup (if needed)
+
+app = FastAPI(title="CRM MVP", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

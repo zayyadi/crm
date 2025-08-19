@@ -9,12 +9,12 @@ from jose import jwt
 from passlib.context import CryptContext
 # from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
-from models.models import User
+from app.models.models import User
 from pydantic import EmailStr
 import redis
 import os
 
-
+# Apply bcrypt patch for compatibility
 expire_time = int(os.environ.get("REFRESH_TOKEN_EXPIRES"))
 SECRET_KEY = os.getenv("SECRET_KEY", "secret")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
@@ -82,10 +82,10 @@ async def get_user( email: EmailStr):
     return email
 
 async def validate_user(user: OAuth2PasswordRequestForm = Depends()):
-    try:
-        db_user = await get_user(user.username)
-        print(f"db_user: {db_user}")
-    except HTTPException:
+    db_user = await get_user(user.username)
+    
+    # Check if user exists
+    if db_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

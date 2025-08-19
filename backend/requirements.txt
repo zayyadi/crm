@@ -1,13 +1,19 @@
-fastapi
-uvicorn
-sqlalchemy[asyncio]
-asyncpg
-alembic
-python-jose[cryptography]
-passlib[bcrypt]
-pydantic
-pytest
-httpx
-python-dotenv
-email-validator
-python-multipart
+fastapi>=0.116.1
+uvicorn>=0.35.0
+sqlalchemy[asyncio]>=2.0.42
+asyncpg>=0.30.0
+alembic>=1.16.4
+python-jose[cryptography]>=3.5.0
+# passlib[bcrypt]>=1.7.5
+pydantic>=2.11.7
+pytest>=8.4.1
+httpx>=0.28.1
+python-dotenv>=1.1.1
+email-validator>=2.2.0
+python-multipart>=0.0.20
+fastapi-mail>=1.5.0
+redis>=6.2.0
+google-generativeai>=0.7.0
+# sentence-transformers>=3.0.0
+chromadb>=0.5.0
+# tiktoken>=0.7.0
